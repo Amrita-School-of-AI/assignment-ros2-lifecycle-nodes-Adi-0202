@@ -33,20 +33,53 @@ public:
         RCLCPP_INFO(this->get_logger(), "Lifecycle sensor node created");
     }
 
-    // TODO: Implement on_configure callback
-    // CallbackReturn on_configure(const rclcpp_lifecycle::State &)
+    CallbackReturn on_configure(const rclcpp_lifecycle::State &)
+    {
+        publisher_ = this->create_publisher<std_msgs::msg::Float64>("/sensor_data", 10);
+        RCLCPP_INFO(this->get_logger(), "Sensor configured");
+        return CallbackReturn::SUCCESS;
+    }
 
-    // TODO: Implement on_activate callback
-    // CallbackReturn on_activate(const rclcpp_lifecycle::State &)
+    CallbackReturn on_activate(const rclcpp_lifecycle::State &)
+    {
+        if (publisher_) {
+            publisher_->on_activate();
+        }
 
-    // TODO: Implement on_deactivate callback
-    // CallbackReturn on_deactivate(const rclcpp_lifecycle::State &)
+        timer_ = this->create_wall_timer(
+            500ms,
+            std::bind(&LifecycleSensor::timer_callback, this)
+        );
 
-    // TODO: Implement on_cleanup callback
-    // CallbackReturn on_cleanup(const rclcpp_lifecycle::State &)
+        RCLCPP_INFO(this->get_logger(), "Sensor activated");
+        return CallbackReturn::SUCCESS;
+    }
 
-    // TODO: Implement on_shutdown callback
-    // CallbackReturn on_shutdown(const rclcpp_lifecycle::State &)
+    CallbackReturn on_deactivate(const rclcpp_lifecycle::State &)
+    {
+        timer_.reset();
+
+        if (publisher_) {
+            publisher_->on_deactivate();
+        }
+
+        RCLCPP_INFO(this->get_logger(), "Sensor deactivated");
+        return CallbackReturn::SUCCESS;
+    }
+
+    CallbackReturn on_cleanup(const rclcpp_lifecycle::State &)
+    {
+        timer_.reset();
+        publisher_.reset();
+        RCLCPP_INFO(this->get_logger(), "Sensor cleaned up");
+        return CallbackReturn::SUCCESS;
+    }
+
+    CallbackReturn on_shutdown(const rclcpp_lifecycle::State &)
+    {
+        RCLCPP_INFO(this->get_logger(), "Sensor shutting down");
+        return CallbackReturn::SUCCESS;
+    }
 
 private:
     void timer_callback()
@@ -57,7 +90,7 @@ private:
         publisher_->publish(msg);
     }
 
-    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr publisher_;
+    rclcpp_lifecycle::LifecyclePublisher<std_msgs::msg::Float64>::SharedPtr publisher_;
     rclcpp::TimerBase::SharedPtr timer_;
 
     std::random_device rd_;
